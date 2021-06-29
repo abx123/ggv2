@@ -1,0 +1,21 @@
+# This docker service serves 2 purposes:
+# - a self-contained Go build environment
+# - a local execution environment
+
+version: "2"
+
+services:
+  api:
+    build:
+      # path to the Dockerfile -- contains the commands/description of
+      # how to assemble the base image used for this service
+      context: .
+      dockerfile: ./etc/docker/ggv2.Dockerfile
+
+    volumes:
+      - ./:/go/src/ggv2
+      - ./logs/:/logs/
+
+    ports:
+      # map port 8080 on the host OS to the port defined in .env
+      - "1323:1323"
