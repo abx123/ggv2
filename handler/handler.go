@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -128,6 +130,17 @@ func (con *Handler) CreateTable(c echo.Context) (err error) {
 	fmt.Println("zz:", reqId)
 	// fmt.Println(c.Response().Header().Get(echo.HeaderXRequestID))
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
+	// test, _ := c.Request().GetBody()
+	buf, _ := ioutil.ReadAll(c.Request().Body)
+
+	fmt.Printf("ra body: %v \n", string(buf))
+	reader := ioutil.NopCloser(bytes.NewBuffer(buf))
+	c.Request().Body = reader
+
+	// b := c.Request().Body
+	// fmt.Println(c.Request())
+	// fmt.Println(*b)
+	// logger.Info("CreateTable", zap.String("req", string(c.Request().Body)))
 	// logger.Error()
 	// logger = logger.With()
 	// Get and validate request parameter
@@ -288,6 +301,12 @@ func (con *Handler) GetGuestList(c echo.Context) (err error) {
 	res := GetGuestListResponse{}
 	limit := c.QueryParam("limit")
 	offset := c.QueryParam("offset")
+	buf, _ := ioutil.ReadAll(c.Request().Body)
+
+	fmt.Printf("ra body: %v \n", string(buf))
+	reader := ioutil.NopCloser(bytes.NewBuffer(buf))
+	c.Request().Body = reader
+
 	var iLimit int64 = 10
 	var iOffset int64
 	if limit != "" {
