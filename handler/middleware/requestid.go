@@ -14,10 +14,3 @@ func RequestID() echo.MiddlewareFunc {
 		},
 	})
 }
-
-func ServerHeader(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		c.Response().Header().Set(echo.HeaderXRequestID, uuid.New().String())
-		return next(c)
-	}
-}

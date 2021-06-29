@@ -1,78 +1,63 @@
-# This docker service serves 2 purposes:
-# - a self-contained Go build environment
-# - a local execution environment
-
-version: "2"
+version: "2.2"
 
 services:
-  api:
-    build:
-      # path to the Dockerfile -- contains the commands/description of
-      # how to assemble the base image used for this service
-      context: .
-      dockerfile: ./etc/docker/ggv2.Dockerfile
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
+    volumes:
+      - ./etc/config/elastisearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:9200/_cat/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    ports:
+      - 9200:9200
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.6.2
+    volumes:
+      - ./etc/config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
 
+  golang:
+    image: golang:1.16
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
     volumes:
       - ./:/go/src/ggv2
       - ./logs/:/logs/
+    working_dir: /go/src/ggv2
+    environment:
+      - PORT=1323
+      - DSN=getground:password@tcp(mysql.c8ajbiky1mzj.ap-southeast-1.rds.amazonaws.com:3306)/getground
 
+    command: bash -c "go build . && ./ggv2"
     ports:
-      # map port 8080 on the host OS to the port defined in .env
-      - "1323:1323"
-# version: "2.2"
+      - 1323:1323
 
-# services:
-#   elasticsearch:
-#     image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
-#     volumes:
-#       - ./etc/config/elastisearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
-#     healthcheck:
-#       test: ["CMD", "curl", "-s", "-f", "http://localhost:9200/_cat/health"]
-#       interval: 3s
-#       timeout: 3s
-#       retries: 10
-#     ports:
-#       - 9200:9200
-#   logstash:
-#     image: docker.elastic.co/logstash/logstash:7.6.2
-#     volumes:
-#       - ./etc/config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-#     depends_on:
-#       elasticsearch:
-#         condition: service_healthy
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:6.5.1
+    command: filebeat -e -strict.perms=false
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./etc/config/filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - ./logs/:/logs/
 
-#   golang:
-#     image: golang:1.14
-#     depends_on:
-#       elasticsearch:
-#         condition: service_healthy
-#       kibana:
-#         condition: service_healthy
-#     volumes:
-#       - ./:/go/src/gitlab.com/preslavmihaylov/go-elk-exercise
-#       - ./logs/:/logs/
-#     working_dir: /go/src/gitlab.com/preslavmihaylov/go-elk-exercise
-#     command: go run main.go
-
-#   filebeat:
-#     image: docker.elastic.co/beats/filebeat:6.5.1
-#     command: filebeat -e -strict.perms=false
-#     depends_on:
-#       elasticsearch:
-#         condition: service_healthy
-#     volumes:
-#       - ./etc/config/filebeat.yml:/usr/share/filebeat/filebeat.yml
-#       - ./logs/:/logs/
-
-#   kibana:
-#     image: docker.elastic.co/kibana/kibana:7.6.2
-#     depends_on:
-#       elasticsearch:
-#         condition: service_healthy
-#     healthcheck:
-#       test: ["CMD", "curl", "-s", "-f", "http://localhost:5601/api/status"]
-#       interval: 3s
-#       timeout: 3s
-#       retries: 50
-#     ports:
-#       - 5601:5601
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.6.2
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:5601/api/status"]
+      interval: 3s
+      timeout: 3s
+      retries: 50
+    ports:
+      - 5601:5601
