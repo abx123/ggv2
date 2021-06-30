@@ -1,12 +1,11 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
@@ -43,8 +42,9 @@ func (h *Handler) GetTable(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
-	// Get and validate request parameter
 	id := c.Param("id")
+	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
+	logRequest(c, "GetTable")
 	tableId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		errResp := &errResp{
@@ -52,6 +52,7 @@ func (h *Handler) GetTable(c echo.Context) (err error) {
 			ErrMsg: err.Error(),
 		}
 		// Invalid request parameter
+		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 	// Query database
@@ -78,6 +79,8 @@ func (con *Handler) GetTables(c echo.Context) (err error) {
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
 	var iLimit int64 = 10
 	var iOffset int64
+	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
+	logRequest(c, "GetTables")
 	if limit != "" {
 		iLimit, err = strconv.ParseInt(limit, 10, 64)
 		if err != nil {
@@ -85,6 +88,7 @@ func (con *Handler) GetTables(c echo.Context) (err error) {
 				ReqId:  reqID,
 				ErrMsg: err.Error(),
 			}
+			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 			return c.JSON(http.StatusBadRequest, errResp)
 		}
 	}
@@ -95,6 +99,7 @@ func (con *Handler) GetTables(c echo.Context) (err error) {
 				ReqId:  reqID,
 				ErrMsg: err.Error(),
 			}
+			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 			return c.JSON(http.StatusBadRequest, errResp)
 		}
 	}
@@ -115,8 +120,6 @@ func (con *Handler) GetTables(c echo.Context) (err error) {
 
 // CreateTables handles PUT /table
 func (con *Handler) CreateTable(c echo.Context) (err error) {
-	// zap.L().Info("test", zap.Error(fmt.Errorf("test2")))
-	// fmt.Println("here1")
 	type createTableRequest struct {
 		Capacity int64 `json:"capacity" form:"capacity"`
 	}
@@ -126,41 +129,25 @@ func (con *Handler) CreateTable(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
-	reqId := ctx.Value(constant.ContextKeyRequestID)
-	fmt.Println("zz:", reqId)
-	// fmt.Println(c.Response().Header().Get(echo.HeaderXRequestID))
-	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
-	// test, _ := c.Request().GetBody()
-	buf, _ := ioutil.ReadAll(c.Request().Body)
-
-	fmt.Printf("ra body: %v \n", string(buf))
-	reader := ioutil.NopCloser(bytes.NewBuffer(buf))
-	c.Request().Body = reader
-
-	// b := c.Request().Body
-	// fmt.Println(c.Request())
-	// fmt.Println(*b)
-	// logger.Info("CreateTable", zap.String("req", string(c.Request().Body)))
-	// logger.Error()
-	// logger = logger.With()
-	// Get and validate request parameter
+	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
 	r := new(createTableRequest)
+	logRequest(c, "CreateTable")
 	if err = c.Bind(r); err != nil {
 		// Invalid request parameter
-		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 		errResp := &errResp{
 			ReqId:  reqID,
 			ErrMsg: constant.ErrInvalidRequest.Error(),
 		}
+		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 	if r.Capacity < 1 {
 		// Invalid request parameter
-		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(constant.ErrCapacityLessThanOne))
 		errResp := &errResp{
 			ReqId:  reqID,
 			ErrMsg: constant.ErrCapacityLessThanOne.Error(),
 		}
+		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(constant.ErrCapacityLessThanOne))
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 	res := &PutCreateTableResponse{}
@@ -185,6 +172,7 @@ func (con *Handler) EmptyTables(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
+	logRequest(c, "EmptyTables")
 	// Query database
 	err = con.DbSvc.EmptyTables(ctx)
 	if err != nil {
@@ -208,6 +196,7 @@ func (con *Handler) GetEmptySeatsCount(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
+	logRequest(c, "GetEmptySeatsCount")
 	// Query database
 	count, err := con.DbSvc.GetEmptySeatsCount(ctx)
 	if err != nil {
@@ -239,28 +228,33 @@ func (con *Handler) AddToGuestList(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
+	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
+	logRequest(c, "AddToGuestList")
 	if err = c.Bind(r); err != nil {
 		// Invalid request parameter
 		errResp := &errResp{
 			ReqId:  reqID,
 			ErrMsg: err.Error(),
 		}
+		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 	if r.Table < 1 {
 		// Invalid request parameter
 		errResp := &errResp{
 			ReqId:  reqID,
-			ErrMsg: err.Error(),
+			ErrMsg: constant.ErrTableNotFound.Error(),
 		}
+		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 	if r.AccompanyingGuests < 0 {
 		// Invalid request parameter
 		errResp := &errResp{
 			ReqId:  reqID,
-			ErrMsg: err.Error(),
+			ErrMsg: constant.ErrAccompanyingGuestLessThanZero.Error(),
 		}
+		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(constant.ErrAccompanyingGuestLessThanZero))
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 	res := PostGuestListResponse{}
@@ -301,12 +295,9 @@ func (con *Handler) GetGuestList(c echo.Context) (err error) {
 	res := GetGuestListResponse{}
 	limit := c.QueryParam("limit")
 	offset := c.QueryParam("offset")
-	buf, _ := ioutil.ReadAll(c.Request().Body)
-
-	fmt.Printf("ra body: %v \n", string(buf))
-	reader := ioutil.NopCloser(bytes.NewBuffer(buf))
-	c.Request().Body = reader
-
+	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
+	logRequest(c, "GetGuestList")
+	
 	var iLimit int64 = 10
 	var iOffset int64
 	if limit != "" {
@@ -316,6 +307,7 @@ func (con *Handler) GetGuestList(c echo.Context) (err error) {
 				ReqId:  reqID,
 				ErrMsg: err.Error(),
 			}
+			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 			return c.JSON(http.StatusBadRequest, errResp)
 		}
 	}
@@ -326,6 +318,7 @@ func (con *Handler) GetGuestList(c echo.Context) (err error) {
 				ReqId:  reqID,
 				ErrMsg: err.Error(),
 			}
+			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 			return c.JSON(http.StatusBadRequest, errResp)
 		}
 	}
@@ -365,6 +358,8 @@ func (con *Handler) GuestArrived(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
+	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
+	logRequest(c, "GuestArrived")
 	// Get and validate request parameter
 	r := new(PutGuestArrivesRequest)
 	name := c.Param("name")
@@ -374,6 +369,7 @@ func (con *Handler) GuestArrived(c echo.Context) (err error) {
 			ReqId:  reqID,
 			ErrMsg: err.Error(),
 		}
+		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 	if r.AccompanyingGuests < 0 {
@@ -382,6 +378,7 @@ func (con *Handler) GuestArrived(c echo.Context) (err error) {
 			ReqId:  reqID,
 			ErrMsg: constant.ErrAccompanyingGuestLessThanZero.Error(),
 		}
+		logger.Error(constant.ErrAccompanyingGuestLessThanZero.Error(), zap.Error(constant.ErrAccompanyingGuestLessThanZero))
 		return c.JSON(http.StatusBadRequest, errResp)
 	}
 	res := PutGuestArrivesResponse{}
@@ -415,6 +412,8 @@ func (con *Handler) ListArrivedGuest(c echo.Context) (err error) {
 	res := GetGuestListResponse{}
 	limit := c.QueryParam("limit")
 	offset := c.QueryParam("offset")
+	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
+	logRequest(c, "GuestArrived")
 	var iLimit int64 = 10
 	var iOffset int64
 	if limit != "" {
@@ -424,6 +423,7 @@ func (con *Handler) ListArrivedGuest(c echo.Context) (err error) {
 				ReqId:  reqID,
 				ErrMsg: err.Error(),
 			}
+			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 			return c.JSON(http.StatusBadRequest, errResp)
 		}
 	}
@@ -434,6 +434,7 @@ func (con *Handler) ListArrivedGuest(c echo.Context) (err error) {
 				ReqId:  reqID,
 				ErrMsg: err.Error(),
 			}
+			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
 			return c.JSON(http.StatusBadRequest, errResp)
 		}
 	}
@@ -468,7 +469,8 @@ func (con *Handler) GuestDepart(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
-
+	// logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
+	logRequest(c, "GuestDepart")
 	// Get and validate request parameter
 	name := c.Param("name")
 	// Query database
@@ -486,4 +488,29 @@ func (con *Handler) GuestDepart(c echo.Context) (err error) {
 	}
 	// Return ok
 	return c.JSON(http.StatusAccepted, "OK!")
+}
+
+func logRequest(c echo.Context, name string){
+
+	zf := []zap.Field{}
+	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
+	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
+	qp := c.QueryParams()
+	fp, _ := c.FormParams()
+	pn := c.ParamNames()
+	pathParams := []string{}
+
+	if c.Request().URL.RawQuery != ""{
+		zf = append(zf, zap.String("QueryString", c.Request().URL.RawQuery))
+	}
+	if fmt.Sprintf("%v", fp) != fmt.Sprintf("%v", qp){
+		zf = append(zf, zap.String("FormData", fmt.Sprintf("%s", fp)))
+	}
+	for _, v := range pn{
+		pathParams = append(pathParams, fmt.Sprintf("%s=%s", v, c.Param(v)))
+	}
+	if len(pathParams) > 0{
+		zf = append(zf, zap.String("PathParam", strings.Join(pathParams, "&")))
+	}
+	logger.Info(name, zf...)
 }
