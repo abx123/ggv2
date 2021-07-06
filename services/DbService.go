@@ -8,15 +8,11 @@ import (
 	"ggv2/repo"
 )
 
-type ContextKey string
-
-const ContextKeyRequestID ContextKey = "requestID"
-
 type DBService struct {
-	repo repo.Repository
+	repo repo.DbRepo
 }
 
-func NewDbService(r *repo.DbRepo) *DBService {
+func NewDbService(r *repo.DBRepo) *DBService {
 	return &DBService{
 		repo: r,
 	}

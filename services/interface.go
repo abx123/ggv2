@@ -5,7 +5,7 @@ import (
 	"ggv2/entities"
 )
 
-type Service interface {
+type DbService interface {
 	GetTable(context.Context, int64) (*entities.Table, error)
 	ListTables(context.Context, int64, int64) ([]*entities.Table, error)
 	CreateTable(context.Context, int64) (*entities.Table, error)

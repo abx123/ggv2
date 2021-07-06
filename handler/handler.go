@@ -23,7 +23,7 @@ type errResp struct {
 }
 
 type Handler struct {
-	DbSvc services.Service
+	DbSvc services.DbService
 }
 
 func NewHandler(conn *sqlx.DB) *Handler {

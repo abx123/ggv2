@@ -16,20 +16,20 @@ import (
 
 type ContextKey string
 
-type DbRepo struct {
+type DBRepo struct {
 	db *sqlx.DB
 }
 
 const ContextKeyRequestID ContextKey = "requestID"
 
-func NewDbRepo(db *sqlx.DB) *DbRepo {
-	return &DbRepo{
+func NewDbRepo(db *sqlx.DB) *DBRepo {
+	return &DBRepo{
 		db: db,
 	}
 }
 
 // GetTable returns detail of a single table.
-func (r *DbRepo) GetTable(ctx context.Context, id int64) (*entities.Table, error) {
+func (r *DBRepo) GetTable(ctx context.Context, id int64) (*entities.Table, error) {
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
 	table := entities.Table{}
@@ -46,7 +46,7 @@ func (r *DbRepo) GetTable(ctx context.Context, id int64) (*entities.Table, error
 	return &table, nil
 }
 
-func (r *DbRepo) CreateTable(ctx context.Context, table *entities.Table) (*entities.Table, error) {
+func (r *DBRepo) CreateTable(ctx context.Context, table *entities.Table) (*entities.Table, error) {
 	reqId := ctx.Value(constant.ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
 	// Execute Statement
@@ -68,7 +68,7 @@ func (r *DbRepo) CreateTable(ctx context.Context, table *entities.Table) (*entit
 	return table, nil
 }
 
-func (r *DbRepo) ListTables(ctx context.Context, limit, offset int64) ([]*entities.Table, error) {
+func (r *DBRepo) ListTables(ctx context.Context, limit, offset int64) ([]*entities.Table, error) {
 	tables := []*entities.Table{}
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
@@ -83,7 +83,7 @@ func (r *DbRepo) ListTables(ctx context.Context, limit, offset int64) ([]*entiti
 	return tables, nil
 }
 
-func (r *DbRepo) EmptyTables(ctx context.Context) error {
+func (r *DBRepo) EmptyTables(ctx context.Context) error {
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
 	_, err := r.db.Exec("TRUNCATE TABLE `table`;")
@@ -100,7 +100,7 @@ func (r *DbRepo) EmptyTables(ctx context.Context) error {
 }
 
 // GetEmptySeatsCount calculate current total unoccupied seats.
-func (r *DbRepo) GetEmptySeatsCount(ctx context.Context) (int, error) {
+func (r *DBRepo) GetEmptySeatsCount(ctx context.Context) (int, error) {
 	c := 0
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
@@ -115,7 +115,7 @@ func (r *DbRepo) GetEmptySeatsCount(ctx context.Context) (int, error) {
 	return c, nil
 }
 
-func (r *DbRepo) GetGuestByName(ctx context.Context, g *entities.Guest) (*entities.Guest, error) {
+func (r *DBRepo) GetGuestByName(ctx context.Context, g *entities.Guest) (*entities.Guest, error) {
 	guest := entities.Guest{}
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
@@ -132,7 +132,7 @@ func (r *DbRepo) GetGuestByName(ctx context.Context, g *entities.Guest) (*entiti
 	return &guest, nil
 }
 
-func (r *DbRepo) ListGuests(ctx context.Context, limit, offset int64) ([]*entities.Guest, error) {
+func (r *DBRepo) ListGuests(ctx context.Context, limit, offset int64) ([]*entities.Guest, error) {
 	guests := []*entities.Guest{}
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
@@ -148,7 +148,7 @@ func (r *DbRepo) ListGuests(ctx context.Context, limit, offset int64) ([]*entiti
 	return guests, nil
 }
 
-func (r *DbRepo) ListArrivedGuests(ctx context.Context, limit, offset int64) ([]*entities.Guest, error) {
+func (r *DBRepo) ListArrivedGuests(ctx context.Context, limit, offset int64) ([]*entities.Guest, error) {
 	guests := []*entities.Guest{}
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
@@ -164,7 +164,7 @@ func (r *DbRepo) ListArrivedGuests(ctx context.Context, limit, offset int64) ([]
 	return guests, nil
 }
 
-func (r *DbRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) error {
+func (r *DBRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) error {
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
 	rsvpGuest, err := r.GetGuestByName(ctx, guest)
@@ -238,7 +238,7 @@ func (r *DbRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 	return nil
 }
 
-func (r *DbRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error {
+func (r *DBRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error {
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
 	guestArrival, err := r.GetGuestByName(ctx, guest)
@@ -330,7 +330,7 @@ func (r *DbRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 	return nil
 }
 
-func (r *DbRepo) GuestDepart(ctx context.Context, guest *entities.Guest) error {
+func (r *DBRepo) GuestDepart(ctx context.Context, guest *entities.Guest) error {
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
 	guestArrival, err := r.GetGuestByName(ctx, guest)
