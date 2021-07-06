@@ -54,7 +54,6 @@ func (r *DBRepo) CreateTable(ctx context.Context, table *entities.Table) (*entit
 	if err != nil {
 		logger.Error("db returns error", zap.Error(err))
 		// Error paring statement result into struct
-		fmt.Println("here")
 		return nil, constant.ErrDBErr
 	}
 	id, err := res.LastInsertId()
@@ -168,7 +167,6 @@ func (r *DBRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
 	rsvpGuest, err := r.GetGuestByName(ctx, guest)
-	fmt.Println("g:", rsvpGuest, err, err != nil && err != constant.ErrGuestNotFound)
 	if err != nil && err != constant.ErrGuestNotFound {
 		logger.Error("db returns error", zap.Error(err))
 		// Error getting guest RSVP record, returning error
@@ -176,10 +174,8 @@ func (r *DBRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 	}
 	if rsvpGuest != nil {
 		return constant.ErrGuestAlreadyRSVP
-		// return constant.ErrGuestAlreadyRSVP
 	}
 	table, err := r.GetTable(ctx, guest.TableID)
-	fmt.Println("t:", table, err, guest.TableID)
 	if err != nil {
 		logger.Error("db returns error", zap.Error(err))
 		// Error getting guest RSVP record, returning error
@@ -260,8 +256,6 @@ func (r *DBRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 		// Error getting guest RSVP record, returning error
 		return constant.ErrDBErr
 	}
-	fmt.Println(guestArrival)
-	fmt.Println(table)
 	if table.AvailableCapacity < guest.TotalArrivedGuests {
 		// Table capacity less than number of guests
 		// tx.Rollback()
@@ -275,7 +269,6 @@ func (r *DBRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 		return constant.ErrDBErr
 	}
 	// Able to accomodate guests, checking-in guest
-	// _, err = tx.ExecContext(ctx, "INSERT INTO arrived_guest (total_guests, tableid, guest_name, timestamp) VALUES(?, ?, ?, NOW())", totalGuests, guest.TableID, g.Name)
 	res, err := tx.ExecContext(ctx, "UPDATE `guests` SET total_arrived_guests=?, version = version + 1, arrivaltime=NOW() WHERE guestid = ? AND version = ?", guest.TotalArrivedGuests, guestArrival.ID, guestArrival.Version)
 	if err != nil {
 		logger.Error("db returns error", zap.Error(err))
@@ -340,7 +333,7 @@ func (r *DBRepo) GuestDepart(ctx context.Context, guest *entities.Guest) error {
 		return constant.ErrDBErr
 	}
 	if guestArrival.TotalArrivedGuests == 0 {
-		return constant.ErrGuestNotFound
+		return constant.ErrGuestNotArrived
 	}
 	table, err := r.GetTable(ctx, guestArrival.TableID)
 	if err != nil {

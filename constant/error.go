@@ -23,3 +23,5 @@ var ErrDBErr = fmt.Errorf("database returns error")
 var ErrAccompanyingGuestLessThanZero = fmt.Errorf("accompanying guest cannot be less than 0")
 
 var ErrGuestNeverRSVP = fmt.Errorf("guest never rsvp")
+
+var ErrGuestNotArrived = fmt.Errorf("guest not arrived")
