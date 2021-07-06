@@ -2,8 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
-	"ggv2/constant"
 	"ggv2/entities"
 	"ggv2/repo"
 )
@@ -45,9 +43,6 @@ func (svc *DBService) CreateTable(ctx context.Context, capacity int64) (*entitie
 	}
 	table, err := svc.repo.CreateTable(ctx, table)
 	if err != nil {
-		reqId := ctx.Value(constant.ContextKeyRequestID)
-		fmt.Println("hre2", err.Error(), ctx)
-		fmt.Println("reqId:", reqId)
 		return nil, err
 	}
 	return table, nil
