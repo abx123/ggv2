@@ -69,12 +69,10 @@ func Logger() echo.MiddlewareFunc {
 
 			logger.Info("RsLog:", zf...)
 
-
 			return
 		}
 	}
 }
-
 
 func (w *bodyDumpResponseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)

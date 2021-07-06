@@ -47,7 +47,7 @@ func (r *DbRepo) GetTable(ctx context.Context, id int64) (*entities.Table, error
 }
 
 func (r *DbRepo) CreateTable(ctx context.Context, table *entities.Table) (*entities.Table, error) {
-	reqId := ctx.Value(entities.ContextKeyRequestID)
+	reqId := ctx.Value(constant.ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
 	// Execute Statement
 	res, err := r.db.Exec("INSERT INTO `table` (capacity, pcapacity, acapacity) VALUES(?, ?, ?)", table.Capacity, table.Capacity, table.Capacity)
@@ -168,7 +168,8 @@ func (r *DbRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 	reqId := ctx.Value(ContextKeyRequestID)
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
 	rsvpGuest, err := r.GetGuestByName(ctx, guest)
-	if err != nil {
+	fmt.Println("g:", rsvpGuest, err, err != nil && err != constant.ErrGuestNotFound)
+	if err != nil && err != constant.ErrGuestNotFound {
 		logger.Error("db returns error", zap.Error(err))
 		// Error getting guest RSVP record, returning error
 		return constant.ErrDBErr
@@ -177,14 +178,15 @@ func (r *DbRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 		return constant.ErrGuestAlreadyRSVP
 		// return constant.ErrGuestAlreadyRSVP
 	}
-	table, err := r.GetTable(ctx, rsvpGuest.TableID)
+	table, err := r.GetTable(ctx, guest.TableID)
+	fmt.Println("t:", table, err, guest.TableID)
 	if err != nil {
 		logger.Error("db returns error", zap.Error(err))
 		// Error getting guest RSVP record, returning error
 		return constant.ErrDBErr
 	}
 	// Table capacity less than number of guests
-	if table.AvailableCapacity < guest.TotalGuests {
+	if table.PlannedCapacity < guest.TotalGuests {
 		return constant.ErrTableIsFull
 		// return constant.ErrTableIsFull
 	}
@@ -194,7 +196,7 @@ func (r *DbRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 		// Error starting transaction
 		return constant.ErrDBErr
 	}
-	_, err = tx.ExecContext(ctx, "INSERT INTO `guests` (total_guests, tableid, guest_name) VALUES(?, ?, ?)", guest.TotalGuests, guest.TableID, guest.Name)
+	_, err = tx.ExecContext(ctx, "INSERT INTO `guests` (total_guests, tableid, name) VALUES(?, ?, ?)", guest.TotalGuests, guest.TableID, guest.Name)
 	if err != nil {
 		logger.Error("db returns error", zap.Error(err))
 		// Error creating RSVP record for guest
@@ -204,7 +206,7 @@ func (r *DbRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 	// Calculate new capacity
 	table.PlannedCapacity -= guest.TotalGuests
 	// Update table capacity information
-	res, err := tx.ExecContext(ctx, "UPDATE `table` SET pcapacity=?, version = version + 1 WHERE id = ? AND version = ?", table.PlannedCapacity, table.TableID, table.Version)
+	res, err := tx.ExecContext(ctx, "UPDATE `table` SET pcapacity=?, version = version + 1 WHERE tableid = ? AND version = ?", table.PlannedCapacity, table.TableID, table.Version)
 	if err != nil {
 		logger.Error("db returns error", zap.Error(err))
 		// Error updating table capacity information
@@ -241,6 +243,9 @@ func (r *DbRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqId)))
 	guestArrival, err := r.GetGuestByName(ctx, guest)
 	if err != nil {
+		if err == constant.ErrGuestNotFound {
+			return constant.ErrGuestNeverRSVP
+		}
 		logger.Error("db returns error", zap.Error(err))
 		// Error getting guest arrival record, returning error
 		return constant.ErrDBErr
@@ -255,6 +260,8 @@ func (r *DbRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 		// Error getting guest RSVP record, returning error
 		return constant.ErrDBErr
 	}
+	fmt.Println(guestArrival)
+	fmt.Println(table)
 	if table.AvailableCapacity < guest.TotalArrivedGuests {
 		// Table capacity less than number of guests
 		// tx.Rollback()
@@ -269,7 +276,7 @@ func (r *DbRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 	}
 	// Able to accomodate guests, checking-in guest
 	// _, err = tx.ExecContext(ctx, "INSERT INTO arrived_guest (total_guests, tableid, guest_name, timestamp) VALUES(?, ?, ?, NOW())", totalGuests, guest.TableID, g.Name)
-	res, err := tx.ExecContext(ctx, "UPDATE `guests` SET total_arrived_guests=?, version = version + 1, timestamp=NOW() WHERE id = ? AND version = ?", guestArrival.TotalArrivedGuests, guestArrival.ID, guestArrival.Version)
+	res, err := tx.ExecContext(ctx, "UPDATE `guests` SET total_arrived_guests=?, version = version + 1, arrivaltime=NOW() WHERE guestid = ? AND version = ?", guest.TotalArrivedGuests, guestArrival.ID, guestArrival.Version)
 	if err != nil {
 		logger.Error("db returns error", zap.Error(err))
 		// Error creating check-in record for guest
@@ -290,10 +297,10 @@ func (r *DbRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 		// return constant.ErrFailedOptimisticLock
 	}
 	// Calculate new capacity
-	table.AvailableCapacity -= guestArrival.TotalArrivedGuests
+	table.AvailableCapacity -= guest.TotalArrivedGuests
 	// Update table capacity information
 	// res, err := tx.ExecContext(ctx, "UPDATE available_tables SET available_capacity=?, version = version + 1 WHERE id = ? AND version = ?", row.AvailableCapacity, row.TableID, row.Version)
-	res, err = tx.ExecContext(ctx, "UPDATE `table` SET acapacity=?, version = version + 1 WHERE id = ? AND version = ?", table.AvailableCapacity, table.TableID, table.Version)
+	res, err = tx.ExecContext(ctx, "UPDATE `table` SET acapacity=?, version = version + 1 WHERE tableid = ? AND version = ?", table.AvailableCapacity, table.TableID, table.Version)
 	if err != nil {
 		logger.Error("db returns error", zap.Error(err))
 		// Error updating table capacity information
@@ -348,7 +355,7 @@ func (r *DbRepo) GuestDepart(ctx context.Context, guest *entities.Guest) error {
 		return constant.ErrDBErr
 	}
 	// Able to accomodate guests, checking-in guest
-	res, err := tx.ExecContext(ctx, "UPDATE `guests` SET total_arrived_guests=0, version = version + 1, timestamp=\"\" WHERE id = ? AND version = ?", guestArrival.ID, guestArrival.Version)
+	res, err := tx.ExecContext(ctx, "UPDATE `guests` SET total_arrived_guests=0, version = version + 1, arrivaltime=\"\" WHERE guestid = ? AND version = ?", guestArrival.ID, guestArrival.Version)
 	if err != nil {
 		logger.Error("db returns error", zap.Error(err))
 		// Error creating check-in record for guest
@@ -369,7 +376,7 @@ func (r *DbRepo) GuestDepart(ctx context.Context, guest *entities.Guest) error {
 		// constant.ErrFailedOptimisticLock
 	}
 	table.AvailableCapacity += guestArrival.TotalArrivedGuests
-	res, err = tx.ExecContext(ctx, "UPDATE `table` SET acapacity=?, version = version + 1 WHERE id = ? AND version = ?", table.AvailableCapacity, table.TableID, table.Version)
+	res, err = tx.ExecContext(ctx, "UPDATE `table` SET acapacity=?, version = version + 1 WHERE tableid = ? AND version = ?", table.AvailableCapacity, table.TableID, table.Version)
 	if err != nil {
 		logger.Error("db returns error", zap.Error(err))
 		// Error updating table capacity information

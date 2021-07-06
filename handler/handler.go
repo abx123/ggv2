@@ -12,7 +12,6 @@ import (
 	"go.uber.org/zap"
 
 	"ggv2/constant"
-	"ggv2/entities"
 	"ggv2/handler/presenter"
 	"ggv2/repo"
 	"ggv2/services"
@@ -64,7 +63,10 @@ func (h *Handler) GetTable(c echo.Context) (err error) {
 		return c.JSON(http.StatusInternalServerError, errResp)
 	}
 	// Return ok
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, &presenter.Table{
+		TableID:  res.TableID,
+		Capacity: res.Capacity,
+	})
 }
 
 // GetTables handles GET /tables
@@ -101,7 +103,7 @@ func (con *Handler) GetTables(c echo.Context) (err error) {
 		}
 	}
 	// Query database
-	res, err := con.DbSvc.ListTables(ctx, iLimit, iOffset)
+	data, err := con.DbSvc.ListTables(ctx, iLimit, iOffset)
 
 	if err != nil {
 		// Error while querying database
@@ -111,8 +113,17 @@ func (con *Handler) GetTables(c echo.Context) (err error) {
 		}
 		return c.JSON(http.StatusInternalServerError, errResp)
 	}
+	// Map response fields
+	var tables []*presenter.Table
+	for _, d := range data {
+		tables = append(tables, &presenter.Table{
+			TableID:  d.TableID,
+			Capacity: d.Capacity,
+		})
+	}
+
 	// Return ok
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, tables)
 }
 
 // CreateTables handles PUT /table
@@ -121,7 +132,7 @@ func (con *Handler) CreateTable(c echo.Context) (err error) {
 		Capacity int64 `json:"capacity" form:"capacity"`
 	}
 	type PutCreateTableResponse struct {
-		Table *entities.Table `json:"table"`
+		Table *presenter.Table `json:"table"`
 	}
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
@@ -148,7 +159,7 @@ func (con *Handler) CreateTable(c echo.Context) (err error) {
 	}
 	res := &PutCreateTableResponse{}
 	// Query database
-	table, err := con.DbSvc.CreateTable(ctx, r.Capacity)
+	data, err := con.DbSvc.CreateTable(ctx, r.Capacity)
 	if err != nil {
 		// Error while querying database
 		errResp := &errResp{
@@ -158,7 +169,10 @@ func (con *Handler) CreateTable(c echo.Context) (err error) {
 		return c.JSON(http.StatusInternalServerError, errResp)
 	}
 	// Map response fields
-	res.Table = table
+	res.Table = &presenter.Table{
+		TableID:  data.TableID,
+		Capacity: data.Capacity,
+	}
 	// Return ok
 	return c.JSON(http.StatusCreated, res)
 }
@@ -252,6 +266,7 @@ func (con *Handler) AddToGuestList(c echo.Context) (err error) {
 	}
 	res := PostGuestListResponse{}
 	// Query database
+	fmt.Println("rt:", r.Table)
 	err = con.DbSvc.AddToGuestList(ctx, r.AccompanyingGuests, r.Table, n)
 	if err != nil {
 		errResp := &errResp{
@@ -469,7 +484,7 @@ func (con *Handler) GuestDepart(c echo.Context) (err error) {
 			ErrMsg: err.Error(),
 		}
 		// Error while querying database
-		if err.Error() == "guest not found" || err.Error() == "table not found" {
+		if err == constant.ErrGuestNotFound || err == constant.ErrTableNotFound {
 			return c.JSON(http.StatusNotFound, errResp)
 		}
 		return c.JSON(http.StatusInternalServerError, errResp)
