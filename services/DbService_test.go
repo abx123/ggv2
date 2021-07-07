@@ -13,21 +13,21 @@ import (
 
 func TestCreateTable(t *testing.T) {
 	type TestCase struct {
-		name  string
-		desc  string
-		err   error
-		res   *entities.Table
+		name string
+		desc string
+		err  error
+		res  *entities.Table
 	}
 	testcases := []TestCase{
 		{
 			name: "Happy case",
 			desc: "all ok",
 			res: &entities.Table{
-				TableID:                  1,
-				Capacity:                 7,
-				AvailableCapacity:        7,
-				PlannedCapacity: 7,
-				Version:                  0,
+				TableID:           1,
+				Capacity:          7,
+				AvailableCapacity: 7,
+				PlannedCapacity:   7,
+				Version:           0,
 			},
 		},
 		{
@@ -60,11 +60,11 @@ func TestListTables(t *testing.T) {
 			desc: "all ok",
 			res: []*entities.Table{
 				{
-					TableID:                  1,
-					Capacity:                 7,
-					AvailableCapacity:        7,
-					PlannedCapacity: 7,
-					Version:                  0,
+					TableID:           1,
+					Capacity:          7,
+					AvailableCapacity: 7,
+					PlannedCapacity:   7,
+					Version:           0,
 				},
 			},
 		},
@@ -116,25 +116,25 @@ func TestGetEmptySeatsCount(t *testing.T) {
 
 func TestAddToGuestList(t *testing.T) {
 	type TestCase struct {
-		name                string
-		desc                string
-		err                 error
+		name string
+		desc string
+		err  error
 	}
 	testcases := []TestCase{
 		{
-			name:                "Happy case",
-			desc:                "all ok",
+			name: "Happy case",
+			desc: "all ok",
 		},
 		{
-			name:                "Sad case",
-			desc:                "repo return error",
-			err:                 fmt.Errorf("mock error"),
+			name: "Sad case",
+			desc: "repo return error",
+			err:  fmt.Errorf("mock error"),
 		},
 	}
 	for _, v := range testcases {
 		repo := new(mocks.DbRepo)
 		dbService := &DBService{repo: repo}
-		repo.On("AddToGuestList",context.Background(), &entities.Guest{Name: "dummy", TableID: 1, TotalGuests: 3}).Return(v.err)
+		repo.On("AddToGuestList", context.Background(), &entities.Guest{Name: "dummy", TableID: 1, TotalGuests: 3}).Return(v.err)
 		actErr := dbService.AddToGuestList(context.Background(), 2, 1, "dummy")
 		assert.Equal(t, v.err, actErr)
 	}
@@ -153,12 +153,12 @@ func TestListRSVPGuests(t *testing.T) {
 			desc: "all ok",
 			res: []*entities.Guest{
 				{
-					ID:                 1,
-					Name:               "dummy",
-					TableID:            2,
+					ID:          1,
+					Name:        "dummy",
+					TableID:     2,
 					TotalGuests: 3,
-					ArrivalTime:        "2021-06-04 04:06:44",
-					Version:            4,
+					ArrivalTime: "2021-06-04 04:06:44",
+					Version:     4,
 				},
 			},
 		},
@@ -296,27 +296,27 @@ func TestListArrivedGuest(t *testing.T) {
 
 func TestGetTable(t *testing.T) {
 	type TestCase struct {
-		name          string
-		desc          string
-		err           error
-		res           *entities.Table
+		name string
+		desc string
+		err  error
+		res  *entities.Table
 	}
 	testcases := []TestCase{
 		{
 			name: "Happy case",
 			desc: "all ok",
 			res: &entities.Table{
-				TableID:                  1,
-				Capacity:                 2,
-				AvailableCapacity:        3,
-				PlannedCapacity: 4,
-				Version:                  5,
+				TableID:           1,
+				Capacity:          2,
+				AvailableCapacity: 3,
+				PlannedCapacity:   4,
+				Version:           5,
 			},
 		},
 		{
-			name:          "Sad case",
-			desc:          "repo return error",
-			err:           fmt.Errorf("mock error"),
+			name: "Sad case",
+			desc: "repo return error",
+			err:  fmt.Errorf("mock error"),
 		},
 	}
 	for _, v := range testcases {

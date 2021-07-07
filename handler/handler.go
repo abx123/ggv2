@@ -266,7 +266,6 @@ func (con *Handler) AddToGuestList(c echo.Context) (err error) {
 	}
 	res := PostGuestListResponse{}
 	// Query database
-	fmt.Println("rt:", r.Table)
 	err = con.DbSvc.AddToGuestList(ctx, r.AccompanyingGuests, r.Table, n)
 	if err != nil {
 		errResp := &errResp{
