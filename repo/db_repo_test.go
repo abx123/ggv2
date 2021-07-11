@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	sqlxmock "github.com/zhashkevych/go-sqlxmock"
 
-	"ggv2/constant"
 	"ggv2/entities"
 )
 
@@ -56,7 +55,7 @@ func TestCreateTable(t *testing.T) {
 				Capacity: int64(7),
 			},
 			err:    fmt.Errorf("mock error"),
-			expErr: constant.ErrDBErr,
+			expErr: errDBErr,
 			dbErr:  true,
 		},
 		{
@@ -66,7 +65,7 @@ func TestCreateTable(t *testing.T) {
 				Capacity: int64(7),
 			},
 			err:           fmt.Errorf("LastInsertId error"),
-			expErr:        constant.ErrDBErr,
+			expErr:        errDBErr,
 			lastInsertErr: true,
 		},
 	}
@@ -108,7 +107,7 @@ func TestGetEmptySeatsCount(t *testing.T) {
 			desc:   "Db return error",
 			err:    fmt.Errorf("mock error"),
 			expRes: 0,
-			expErr: constant.ErrDBErr,
+			expErr: errDBErr,
 		},
 	}
 	for _, v := range testcases {
@@ -162,14 +161,14 @@ func TestListTables(t *testing.T) {
 			desc:   "Db return error",
 			err:    fmt.Errorf("mock error"),
 			dbErr:  true,
-			expErr: constant.ErrDBErr,
+			expErr: errDBErr,
 		},
 		{
 			name:   "Sad case",
 			desc:   "no table found",
 			dbErr:  true,
 			err:    sql.ErrNoRows,
-			expErr: constant.ErrTableNotFound,
+			expErr: errTableNotFound,
 		},
 	}
 	for _, v := range testcases {
@@ -203,14 +202,14 @@ func TestEmptyTables(t *testing.T) {
 			name:             "Sad case",
 			desc:             "Truncate `table` return error",
 			err:              fmt.Errorf("mock error"),
-			expErr:           constant.ErrDBErr,
+			expErr:           errDBErr,
 			truncateTableErr: true,
 		},
 		{
 			name:             "Sad case",
 			desc:             "Truncate `guests` return error",
 			err:              fmt.Errorf("mock error"),
-			expErr:           constant.ErrDBErr,
+			expErr:           errDBErr,
 			truncateGuestErr: true,
 		},
 	}
@@ -257,13 +256,13 @@ func TestGetGuestByName(t *testing.T) {
 			name:   "Sad case",
 			desc:   "Db return error",
 			err:    fmt.Errorf("mock error"),
-			expErr: constant.ErrDBErr,
+			expErr: errDBErr,
 		},
 		{
 			name:   "Sad case",
 			desc:   "guest not found",
 			err:    sql.ErrNoRows,
-			expErr: constant.ErrGuestNotFound,
+			expErr: errGuestNotFound,
 		},
 	}
 	for _, v := range testcases {
@@ -305,13 +304,13 @@ func TestGetTable(t *testing.T) {
 			name:   "Sad case",
 			desc:   "Db return error",
 			err:    fmt.Errorf("mock error"),
-			expErr: constant.ErrDBErr,
+			expErr: errDBErr,
 		},
 		{
 			name:   "Sad case",
 			desc:   "table not found",
 			err:    sql.ErrNoRows,
-			expErr: constant.ErrTableNotFound,
+			expErr: errTableNotFound,
 		},
 	}
 	for _, v := range testcases {
@@ -358,13 +357,13 @@ func TestListArrivedGuest(t *testing.T) {
 			name:   "Sad case",
 			desc:   "Db return error",
 			err:    fmt.Errorf("mock error"),
-			expErr: constant.ErrDBErr,
+			expErr: errDBErr,
 		},
 		{
 			name:   "Sad case",
 			desc:   "no guest found",
 			err:    sql.ErrNoRows,
-			expErr: constant.ErrGuestNotFound,
+			expErr: errGuestNotFound,
 		},
 	}
 	for _, v := range testcases {
@@ -411,13 +410,13 @@ func TestListGuests(t *testing.T) {
 			name:   "Sad case",
 			desc:   "Db return error",
 			err:    fmt.Errorf("mock error"),
-			expErr: constant.ErrDBErr,
+			expErr: errDBErr,
 		},
 		{
 			name:   "Sad case",
 			desc:   "guest not found",
 			err:    sql.ErrNoRows,
-			expErr: constant.ErrGuestNotFound,
+			expErr: errGuestNotFound,
 		},
 	}
 	for _, v := range testcases {
@@ -471,7 +470,7 @@ func TestGuestArrived(t *testing.T) {
 			commitErr:          true,
 			getGuestByNameRows: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRows:       sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 3, 2),
-			expErr:             constant.ErrDBErr,
+			expErr:             errDBErr,
 		},
 		{
 			name:               "Sad case",
@@ -480,7 +479,7 @@ func TestGuestArrived(t *testing.T) {
 			updateTableErr:     true,
 			getGuestByNameRows: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRows:       sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 3, 2),
-			expErr:             constant.ErrDBErr,
+			expErr:             errDBErr,
 		},
 		{
 			name:                       "Sad case",
@@ -489,7 +488,7 @@ func TestGuestArrived(t *testing.T) {
 			updateTableRowsAffectedErr: true,
 			getGuestByNameRows:         sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRows:               sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 3, 2),
-			expErr:                     constant.ErrDBErr,
+			expErr:                     errDBErr,
 		},
 		{
 			name:                         "Sad case",
@@ -497,7 +496,7 @@ func TestGuestArrived(t *testing.T) {
 			updateTableOptimisticLockErr: true,
 			getGuestByNameRows:           sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRows:                 sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 3, 2),
-			expErr:                       constant.ErrFailedOptimisticLock,
+			expErr:                       errFailedOptimisticLock,
 		},
 		{
 			name:               "Sad case",
@@ -506,7 +505,7 @@ func TestGuestArrived(t *testing.T) {
 			updateGuestErr:     true,
 			getGuestByNameRows: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRows:       sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 3, 2),
-			expErr:             constant.ErrDBErr,
+			expErr:             errDBErr,
 		},
 		{
 			name:                       "Sad case",
@@ -515,7 +514,7 @@ func TestGuestArrived(t *testing.T) {
 			updateGuestRowsAffectedErr: true,
 			getGuestByNameRows:         sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRows:               sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 3, 2),
-			expErr:                     constant.ErrDBErr,
+			expErr:                     errDBErr,
 		},
 		{
 			name:                         "Sad case",
@@ -523,7 +522,7 @@ func TestGuestArrived(t *testing.T) {
 			updateGuestOptimisticLockErr: true,
 			getGuestByNameRows:           sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRows:                 sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 3, 2),
-			expErr:                       constant.ErrFailedOptimisticLock,
+			expErr:                       errFailedOptimisticLock,
 		},
 		{
 			name:               "Sad case",
@@ -532,7 +531,7 @@ func TestGuestArrived(t *testing.T) {
 			beginTxErr:         true,
 			getGuestByNameRows: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRows:       sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 3, 2),
-			expErr:             constant.ErrDBErr,
+			expErr:             errDBErr,
 		},
 		{
 			name:               "Sad case",
@@ -541,14 +540,14 @@ func TestGuestArrived(t *testing.T) {
 			getGuestByNameRows: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRows:       sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 3, 2),
 			getTableErr:        true,
-			expErr:             constant.ErrDBErr,
+			expErr:             errDBErr,
 		},
 		{
 			name:               "Sad case",
 			desc:               "table cannot accomodate guest",
 			getGuestByNameRows: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRows:       sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 0, 3, 2),
-			expErr:             constant.ErrTableIsFull,
+			expErr:             errTableIsFull,
 		},
 		{
 			name:               "Sad case",
@@ -556,7 +555,7 @@ func TestGuestArrived(t *testing.T) {
 			err:                nil,
 			getGuestByNameRows: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
 			getTableRows:       sqlxmock.NewRows([]string{}),
-			expErr:             constant.ErrGuestAlreadyArrived,
+			expErr:             errGuestAlreadyArrived,
 		},
 		{
 			name:               "Sad case",
@@ -565,7 +564,7 @@ func TestGuestArrived(t *testing.T) {
 			getGuestByNameRows: sqlxmock.NewRows([]string{}),
 			getGuestByNameErr:  true,
 			getTableRows:       sqlxmock.NewRows([]string{}),
-			expErr:             constant.ErrGuestNeverRSVP,
+			expErr:             errGuestNeverRSVP,
 		},
 		{
 			name:               "Sad case",
@@ -574,7 +573,7 @@ func TestGuestArrived(t *testing.T) {
 			getGuestByNameRows: sqlxmock.NewRows([]string{}),
 			getGuestByNameErr:  true,
 			getTableRows:       sqlxmock.NewRows([]string{}),
-			expErr:             constant.ErrDBErr,
+			expErr:             errDBErr,
 		},
 	}
 	for _, v := range testcases {
@@ -662,7 +661,7 @@ func TestAddToGuestList(t *testing.T) {
 			err:               fmt.Errorf("mock error"),
 			getGuestByNameRow: sqlxmock.NewRows([]string{}),
 			getGuestByNameErr: true,
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 			getTableRows:      sqlxmock.NewRows([]string{}),
 		},
 		{
@@ -670,7 +669,7 @@ func TestAddToGuestList(t *testing.T) {
 			desc:              "get guest returns error",
 			err:               fmt.Errorf("mock error"),
 			getGuestByNameRow: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
-			expErr:            constant.ErrGuestAlreadyRSVP,
+			expErr:            errGuestAlreadyRSVP,
 			getTableRows:      sqlxmock.NewRows([]string{}),
 		},
 		{
@@ -680,7 +679,7 @@ func TestAddToGuestList(t *testing.T) {
 			getTableRows:      sqlxmock.NewRows([]string{}),
 			getTableErr:       true,
 			err:               fmt.Errorf("mock error"),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 		},
 
 		{
@@ -688,7 +687,7 @@ func TestAddToGuestList(t *testing.T) {
 			desc:              "table cannot accomodate",
 			err:               fmt.Errorf("mock error"),
 			getGuestByNameRow: sqlxmock.NewRows([]string{}),
-			expErr:            constant.ErrTableIsFull,
+			expErr:            errTableIsFull,
 			getTableRows:      sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 0, 2),
 		},
 		{
@@ -696,7 +695,7 @@ func TestAddToGuestList(t *testing.T) {
 			desc:              "begin tx return error",
 			err:               fmt.Errorf("mock error"),
 			getGuestByNameRow: sqlxmock.NewRows([]string{}),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 			getTableRows:      sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			beginTxErr:        true,
 		},
@@ -705,7 +704,7 @@ func TestAddToGuestList(t *testing.T) {
 			desc:              "insert guest return error",
 			err:               fmt.Errorf("mock error"),
 			getGuestByNameRow: sqlxmock.NewRows([]string{}),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 			getTableRows:      sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			insertGuestErr:    true,
 		},
@@ -714,7 +713,7 @@ func TestAddToGuestList(t *testing.T) {
 			desc:              "update table return error",
 			err:               fmt.Errorf("mock error"),
 			getGuestByNameRow: sqlxmock.NewRows([]string{}),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 			getTableRows:      sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			updateTableErr:    true,
 		},
@@ -723,7 +722,7 @@ func TestAddToGuestList(t *testing.T) {
 			desc:              "rows affected return error",
 			err:               fmt.Errorf("mock error"),
 			getGuestByNameRow: sqlxmock.NewRows([]string{}),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 			getTableRows:      sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			rowsAffectedErr:   true,
 		},
@@ -731,7 +730,7 @@ func TestAddToGuestList(t *testing.T) {
 			name:              "Sad case",
 			desc:              "optimistic lock error",
 			getGuestByNameRow: sqlxmock.NewRows([]string{}),
-			expErr:            constant.ErrFailedOptimisticLock,
+			expErr:            errFailedOptimisticLock,
 			getTableRows:      sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			rowsAffectedErr:   true,
 		},
@@ -740,7 +739,7 @@ func TestAddToGuestList(t *testing.T) {
 			desc:              "commit error",
 			err:               fmt.Errorf("mock error"),
 			getGuestByNameRow: sqlxmock.NewRows([]string{}),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 			getTableRows:      sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			commitErr:         true,
 		},
@@ -826,14 +825,14 @@ func TestGuestDepart(t *testing.T) {
 			getGuestByNameErr: true,
 			getGuestByNameRow: sqlxmock.NewRows([]string{}),
 			getTableRow:       sqlxmock.NewRows([]string{}),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 		},
 		{
 			name:              "Sad case",
 			desc:              "guest not arrived",
 			getGuestByNameRow: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 0, 4, "", 5),
 			getTableRow:       sqlxmock.NewRows([]string{}),
-			expErr:            constant.ErrGuestNotArrived,
+			expErr:            errGuestNotArrived,
 		},
 		{
 			name:              "Sad case",
@@ -842,7 +841,7 @@ func TestGuestDepart(t *testing.T) {
 			getTableErr:       true,
 			getTableRow:       sqlxmock.NewRows([]string{}),
 			getGuestByNameRow: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 		},
 		{
 			name:              "Sad case",
@@ -851,7 +850,7 @@ func TestGuestDepart(t *testing.T) {
 			beginTxErr:        true,
 			getTableRow:       sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			getGuestByNameRow: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 		},
 		{
 			name:              "Sad case",
@@ -860,7 +859,7 @@ func TestGuestDepart(t *testing.T) {
 			updateGuestErr:    true,
 			getTableRow:       sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			getGuestByNameRow: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 		},
 		{
 			name:                      "Sad case",
@@ -869,7 +868,7 @@ func TestGuestDepart(t *testing.T) {
 			updateGuestRowAffectedErr: true,
 			getTableRow:               sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			getGuestByNameRow:         sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
-			expErr:                    constant.ErrDBErr,
+			expErr:                    errDBErr,
 		},
 		{
 			name:                         "Sad case",
@@ -877,7 +876,7 @@ func TestGuestDepart(t *testing.T) {
 			updateGuestOptimisticLockErr: true,
 			getTableRow:                  sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			getGuestByNameRow:            sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
-			expErr:                       constant.ErrFailedOptimisticLock,
+			expErr:                       errFailedOptimisticLock,
 		},
 
 		{
@@ -887,7 +886,7 @@ func TestGuestDepart(t *testing.T) {
 			updateTableErr:    true,
 			getTableRow:       sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			getGuestByNameRow: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 		},
 		{
 			name:                      "Sad case",
@@ -896,7 +895,7 @@ func TestGuestDepart(t *testing.T) {
 			updateTableRowAffectedErr: true,
 			getTableRow:               sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			getGuestByNameRow:         sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
-			expErr:                    constant.ErrDBErr,
+			expErr:                    errDBErr,
 		},
 		{
 			name:                         "Sad case",
@@ -904,7 +903,7 @@ func TestGuestDepart(t *testing.T) {
 			updateTableOptimisticLockErr: true,
 			getTableRow:                  sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			getGuestByNameRow:            sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
-			expErr:                       constant.ErrFailedOptimisticLock,
+			expErr:                       errFailedOptimisticLock,
 		},
 		{
 			name:              "Sad case",
@@ -913,7 +912,7 @@ func TestGuestDepart(t *testing.T) {
 			commitErr:         true,
 			getTableRow:       sqlxmock.NewRows([]string{"tableid", "capacity", "acapacity", "pcapacity", "version"}).AddRow(1, 6, 6, 6, 2),
 			getGuestByNameRow: sqlxmock.NewRows([]string{"guestid", "name", "total_guests", "total_arrived_guests", "version", "arrivaltime", "tableid"}).AddRow(1, "dummy", 2, 3, 4, "2021-06-04 04:06:44", 5),
-			expErr:            constant.ErrDBErr,
+			expErr:            errDBErr,
 		},
 	}
 	for _, v := range testcases {

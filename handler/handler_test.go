@@ -12,7 +12,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 
-	"ggv2/constant"
 	"ggv2/entities"
 	"ggv2/services/mocks"
 )
@@ -65,7 +64,7 @@ func TestGetTables(t *testing.T) {
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		ctx = context.WithValue(ctx, contextKeyRequestID, "")
 
 		dbSvc.On("ListTables", ctx, int64(10), int64(0)).Return(v.expRes, v.err)
 		handler := Handler{dbSvc}
@@ -122,7 +121,7 @@ func TestGetTable(t *testing.T) {
 		dbSvc := new(mocks.DbService)
 		handler := Handler{dbSvc}
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		ctx = context.WithValue(ctx, contextKeyRequestID, "")
 		dbSvc.On("GetTable", ctx, int64(1)).Return(v.expRes, v.err)
 		req := httptest.NewRequest("GET", v.url, nil)
 		w := httptest.NewRecorder()
@@ -184,7 +183,7 @@ func TestCreateTables(t *testing.T) {
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		ctx = context.WithValue(ctx, contextKeyRequestID, "")
 		dbSvc.On("CreateTable", ctx, int64(5)).Return(v.expRes, v.err)
 		handler := Handler{dbSvc}
 		form := url.Values{}
@@ -224,7 +223,7 @@ func TestEmptyTables(t *testing.T) {
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		ctx = context.WithValue(ctx, contextKeyRequestID, "")
 		dbSvc.On("EmptyTables", ctx).Return(v.err)
 		handler := Handler{dbSvc}
 		req := httptest.NewRequest(http.MethodGet, "http://localhost:1323/empty_tables", nil)
@@ -262,7 +261,7 @@ func TestGetEmptySeatsCount(t *testing.T) {
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		ctx = context.WithValue(ctx, contextKeyRequestID, "")
 		dbSvc.On("GetEmptySeatsCount", ctx).Return(v.expRes, v.err)
 		handler := Handler{dbSvc}
 		req := httptest.NewRequest(http.MethodGet, "http://localhost:1323/seats_empty", nil)
@@ -332,7 +331,7 @@ func TestAddToGuestList(t *testing.T) {
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		ctx = context.WithValue(ctx, contextKeyRequestID, "")
 		dbSvc.On("AddToGuestList", ctx, int64(2), int64(1), "dummy").Return(v.err)
 		handler := Handler{dbSvc}
 		form := url.Values{}
@@ -416,7 +415,7 @@ func TestGetGuestList(t *testing.T) {
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		ctx = context.WithValue(ctx, contextKeyRequestID, "")
 		dbSvc.On("ListRSVPGuests", ctx, int64(10), int64(0)).Return(v.expRes, v.err)
 		handler := Handler{dbSvc}
 		req := httptest.NewRequest(http.MethodGet, v.url, nil)
@@ -473,7 +472,7 @@ func TestGuestArrived(t *testing.T) {
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		ctx = context.WithValue(ctx, contextKeyRequestID, "")
 		dbSvc.On("GuestArrival", ctx, int64(2), "dummy").Return(v.err)
 		handler := Handler{dbSvc}
 		form := url.Values{}
@@ -542,7 +541,7 @@ func TestListArrivedGuest(t *testing.T) {
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		ctx = context.WithValue(ctx, contextKeyRequestID, "")
 		dbSvc.On("ListArrivedGuests", ctx, int64(10), int64(0)).Return(v.expRes, v.err)
 		handler := Handler{dbSvc}
 		req := httptest.NewRequest(http.MethodGet, v.url, nil)
@@ -576,14 +575,14 @@ func TestGuestDepart(t *testing.T) {
 		{
 			name:     "Sad case",
 			desc:     "guest not found error",
-			err:      constant.ErrGuestNotFound,
+			err:      errGuestNotFound,
 			httpCode: http.StatusNotFound,
 		},
 	}
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		ctx = context.WithValue(ctx, contextKeyRequestID, "")
 		dbSvc.On("GuestDepart", ctx, "dummy").Return(v.err)
 		handler := Handler{dbSvc}
 		req := httptest.NewRequest(http.MethodDelete, "http://localhost:1323/guests/dummy", nil)
