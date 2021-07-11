@@ -28,7 +28,7 @@ func (router *router) InitRouter() *echo.Echo {
 	r := echo.New()
 
 	// Middleware
-	r.Use(middleware.RequestID())
+	r.Pre(middleware.RequestID())
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recover())
 	r.Use(middleware.Cors())

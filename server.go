@@ -15,16 +15,13 @@ func main() {
 	logger := initLogger()
 	zap.ReplaceGlobals(logger)
 
-	// Router().InitRouter(1323)
 	dsn := getDSN()
 	port := getPort()
 	conn := initDb(*dsn)
 	defer conn.Close()
 
-	// router := &router{Port: *port}
 	router := NewRouter(*port, conn)
 	router.InitRouter()
-	// router.InitRouter(1)
 }
 
 func getDSN() *string {
@@ -48,7 +45,6 @@ func getPort() *int {
 	if *port == 0 {
 		p, err := strconv.Atoi(envport)
 		if err != nil {
-			// log.Fatalf(err.Error())
 			zap.L().Fatal(err.Error(), zap.Error(err))
 		}
 		port = &p
@@ -59,10 +55,7 @@ func getPort() *int {
 
 func initDb(dsn string) *sqlx.DB {
 	db, err := sqlx.Open("mysql", dsn)
-	// zap.L().Info("test3", zap.Error(fmt.Errorf("test4")))
 	if err != nil {
-		// log.Fatalln(err)
-		// zap.L().Info("test", zap.Error(fmt.Errorf("test2")))
 		zap.L().Fatal(err.Error(), zap.Error(err))
 		return nil
 	}

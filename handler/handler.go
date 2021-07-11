@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -41,26 +40,17 @@ func (h *Handler) GetTable(c echo.Context) (err error) {
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
 	id := c.Param("id")
-	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
 	tableId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
 		// Invalid request parameter
-		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-		return c.JSON(http.StatusBadRequest, errResp)
+		zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
+		return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrInvalidRequest))
 	}
 	// Query database
 	res, err := h.DbSvc.GetTable(ctx, tableId)
 	if err != nil {
 		// Error while querying database
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
-		return c.JSON(http.StatusInternalServerError, errResp)
+		return c.JSON(http.StatusInternalServerError, returnErr(reqID, err))
 	}
 	// Return ok
 	return c.JSON(http.StatusOK, &presenter.Table{
@@ -79,27 +69,18 @@ func (con *Handler) GetTables(c echo.Context) (err error) {
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
 	var iLimit int64 = 10
 	var iOffset int64
-	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
 	if limit != "" {
 		iLimit, err = strconv.ParseInt(limit, 10, 64)
 		if err != nil {
-			errResp := &errResp{
-				ReqId:  reqID,
-				ErrMsg: err.Error(),
-			}
-			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-			return c.JSON(http.StatusBadRequest, errResp)
+			zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
+			return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrInvalidRequest))
 		}
 	}
 	if offset != "" {
 		iOffset, err = strconv.ParseInt(offset, 10, 64)
 		if err != nil {
-			errResp := &errResp{
-				ReqId:  reqID,
-				ErrMsg: err.Error(),
-			}
-			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-			return c.JSON(http.StatusBadRequest, errResp)
+			zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
+			return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrInvalidRequest))
 		}
 	}
 	// Query database
@@ -107,11 +88,7 @@ func (con *Handler) GetTables(c echo.Context) (err error) {
 
 	if err != nil {
 		// Error while querying database
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
-		return c.JSON(http.StatusInternalServerError, errResp)
+		return c.JSON(http.StatusInternalServerError, returnErr(reqID, err))
 	}
 	// Map response fields
 	var tables []*presenter.Table
@@ -137,36 +114,23 @@ func (con *Handler) CreateTable(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
-	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
 	r := new(createTableRequest)
 	if err = c.Bind(r); err != nil {
 		// Invalid request parameter
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: constant.ErrInvalidRequest.Error(),
-		}
-		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-		return c.JSON(http.StatusBadRequest, errResp)
+		zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
+		return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrInvalidRequest))
 	}
 	if r.Capacity < 1 {
 		// Invalid request parameter
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: constant.ErrCapacityLessThanOne.Error(),
-		}
-		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(constant.ErrCapacityLessThanOne))
-		return c.JSON(http.StatusBadRequest, errResp)
+		zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(constant.ErrCapacityLessThanOne))
+		return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrCapacityLessThanOne))
 	}
 	res := &PutCreateTableResponse{}
 	// Query database
 	data, err := con.DbSvc.CreateTable(ctx, r.Capacity)
 	if err != nil {
 		// Error while querying database
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
-		return c.JSON(http.StatusInternalServerError, errResp)
+		return c.JSON(http.StatusInternalServerError, returnErr(reqID, err))
 	}
 	// Map response fields
 	res.Table = &presenter.Table{
@@ -186,11 +150,7 @@ func (con *Handler) EmptyTables(c echo.Context) (err error) {
 	err = con.DbSvc.EmptyTables(ctx)
 	if err != nil {
 		// Error while querying database
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
-		return c.JSON(http.StatusInternalServerError, errResp)
+		return c.JSON(http.StatusInternalServerError, returnErr(reqID, err))
 	}
 	// Return ok
 	return c.JSON(http.StatusOK, "Tables emptied!")
@@ -209,11 +169,7 @@ func (con *Handler) GetEmptySeatsCount(c echo.Context) (err error) {
 	count, err := con.DbSvc.GetEmptySeatsCount(ctx)
 	if err != nil {
 		// Error while querying database
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
-		return c.JSON(http.StatusInternalServerError, errResp)
+		return c.JSON(http.StatusInternalServerError, returnErr(reqID, err))
 	}
 	// Map response fields
 	res.SeatsEmpty = int64(count)
@@ -236,48 +192,31 @@ func (con *Handler) AddToGuestList(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
-	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
 	if err = c.Bind(r); err != nil {
 		// Invalid request parameter
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
-		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-		return c.JSON(http.StatusBadRequest, errResp)
+		zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
+		return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrInvalidRequest))
 	}
 	if r.Table < 1 {
 		// Invalid request parameter
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: constant.ErrTableNotFound.Error(),
-		}
-		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-		return c.JSON(http.StatusBadRequest, errResp)
+		zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(constant.ErrCapacityLessThanOne))
+		return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrCapacityLessThanOne))
 	}
 	if r.AccompanyingGuests < 0 {
 		// Invalid request parameter
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: constant.ErrAccompanyingGuestLessThanZero.Error(),
-		}
-		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(constant.ErrAccompanyingGuestLessThanZero))
-		return c.JSON(http.StatusBadRequest, errResp)
+		zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(constant.ErrAccompanyingGuestLessThanZero))
+		return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrAccompanyingGuestLessThanZero))
 	}
 	res := PostGuestListResponse{}
 	// Query database
 	err = con.DbSvc.AddToGuestList(ctx, r.AccompanyingGuests, r.Table, n)
 	if err != nil {
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
 		// Error while querying database
-		if err.Error() == "table not found" {
+		if err == constant.ErrTableNotFound {
 
-			return c.JSON(http.StatusNotFound, errResp)
+			return c.JSON(http.StatusNotFound, returnErr(reqID, constant.ErrTableNotFound))
 		}
-		return c.JSON(http.StatusInternalServerError, errResp)
+		return c.JSON(http.StatusInternalServerError, returnErr(reqID, err))
 	}
 	// Map response fields
 	res.Name = n
@@ -302,41 +241,28 @@ func (con *Handler) GetGuestList(c echo.Context) (err error) {
 	res := GetGuestListResponse{}
 	limit := c.QueryParam("limit")
 	offset := c.QueryParam("offset")
-	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
 
 	var iLimit int64 = 10
 	var iOffset int64
 	if limit != "" {
 		iLimit, err = strconv.ParseInt(limit, 10, 64)
 		if err != nil {
-			errResp := &errResp{
-				ReqId:  reqID,
-				ErrMsg: err.Error(),
-			}
-			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-			return c.JSON(http.StatusBadRequest, errResp)
+			zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
+			return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrInvalidRequest))
 		}
 	}
 	if offset != "" {
 		iOffset, err = strconv.ParseInt(offset, 10, 64)
 		if err != nil {
-			errResp := &errResp{
-				ReqId:  reqID,
-				ErrMsg: err.Error(),
-			}
-			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-			return c.JSON(http.StatusBadRequest, errResp)
+			zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
+			return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrInvalidRequest))
 		}
 	}
 	// Query database
 	data, err := con.DbSvc.ListRSVPGuests(ctx, iLimit, iOffset)
 	if err != nil {
 		// Error while querying database
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
-		return c.JSON(http.StatusInternalServerError, errResp)
+		return c.JSON(http.StatusInternalServerError, returnErr(reqID, err))
 	}
 	// Map response fields
 	var guests []*presenter.Guest
@@ -364,41 +290,28 @@ func (con *Handler) GuestArrived(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 	ctx = context.WithValue(ctx, constant.ContextKeyRequestID, reqID)
-	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
 	// Get and validate request parameter
 	r := new(PutGuestArrivesRequest)
 	name := c.Param("name")
 	if err = c.Bind(r); err != nil {
 		// Invalid request parameter
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
-		logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-		return c.JSON(http.StatusBadRequest, errResp)
+		zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
+		return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrInvalidRequest))
 	}
 	if r.AccompanyingGuests < 0 {
 		// Invalid request parameter
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: constant.ErrAccompanyingGuestLessThanZero.Error(),
-		}
-		logger.Error(constant.ErrAccompanyingGuestLessThanZero.Error(), zap.Error(constant.ErrAccompanyingGuestLessThanZero))
-		return c.JSON(http.StatusBadRequest, errResp)
+		zap.L().Error(constant.ErrAccompanyingGuestLessThanZero.Error(), zap.Error(constant.ErrAccompanyingGuestLessThanZero))
+		return c.JSON(http.StatusBadRequest, returnErr(reqID, constant.ErrAccompanyingGuestLessThanZero))
 	}
 	res := PutGuestArrivesResponse{}
 	// Query database
 	err = con.DbSvc.GuestArrival(ctx, r.AccompanyingGuests, name)
 	if err != nil {
 		// Error while querying database
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
 		if err.Error() == "guest did not register" || err.Error() == "guest already arrived" {
-			return c.JSON(http.StatusNotFound, errResp)
+			return c.JSON(http.StatusNotFound, returnErr(reqID, err))
 		}
-		return c.JSON(http.StatusInternalServerError, errResp)
+		return c.JSON(http.StatusInternalServerError, returnErr(reqID, err))
 	}
 	// Map response fields
 	res.Name = name
@@ -417,40 +330,27 @@ func (con *Handler) ListArrivedGuest(c echo.Context) (err error) {
 	res := GetGuestListResponse{}
 	limit := c.QueryParam("limit")
 	offset := c.QueryParam("offset")
-	logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", reqID)))
 	var iLimit int64 = 10
 	var iOffset int64
 	if limit != "" {
 		iLimit, err = strconv.ParseInt(limit, 10, 64)
 		if err != nil {
-			errResp := &errResp{
-				ReqId:  reqID,
-				ErrMsg: err.Error(),
-			}
-			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-			return c.JSON(http.StatusBadRequest, errResp)
+			zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
+			return c.JSON(http.StatusBadRequest, returnErr(reqID, err))
 		}
 	}
 	if offset != "" {
 		iOffset, err = strconv.ParseInt(offset, 10, 64)
 		if err != nil {
-			errResp := &errResp{
-				ReqId:  reqID,
-				ErrMsg: err.Error(),
-			}
-			logger.Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
-			return c.JSON(http.StatusBadRequest, errResp)
+			zap.L().Error(constant.ErrInvalidRequest.Error(), zap.Error(err))
+			return c.JSON(http.StatusBadRequest, returnErr(reqID, err))
 		}
 	}
 	// Query database
 	data, err := con.DbSvc.ListArrivedGuests(ctx, iLimit, iOffset)
 	if err != nil {
 		// Error while querying database
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
-		return c.JSON(http.StatusInternalServerError, errResp)
+		return c.JSON(http.StatusInternalServerError, returnErr(reqID, err))
 	}
 	// Map response fields
 	var guests []*presenter.Guest
@@ -478,16 +378,19 @@ func (con *Handler) GuestDepart(c echo.Context) (err error) {
 	// Query database
 	err = con.DbSvc.GuestDepart(ctx, name)
 	if err != nil {
-		errResp := &errResp{
-			ReqId:  reqID,
-			ErrMsg: err.Error(),
-		}
 		// Error while querying database
 		if err == constant.ErrGuestNotFound || err == constant.ErrTableNotFound {
-			return c.JSON(http.StatusNotFound, errResp)
+			return c.JSON(http.StatusNotFound, returnErr(reqID, err))
 		}
-		return c.JSON(http.StatusInternalServerError, errResp)
+		return c.JSON(http.StatusInternalServerError, returnErr(reqID, err))
 	}
 	// Return ok
 	return c.JSON(http.StatusAccepted, "OK!")
+}
+
+func returnErr(reqID string, err error) *errResp{
+	return &errResp{
+		ReqId: reqID,
+		ErrMsg: err.Error(),
+	}
 }
