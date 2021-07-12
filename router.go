@@ -24,7 +24,8 @@ func NewRouter(port int, conn *sqlx.DB) *router {
 }
 
 func (router *router) InitRouter() *echo.Echo {
-	handler := handler.NewHandler(router.Conn)
+	th := handler.NewTableHandler(router.Conn)
+	gh := handler.NewGuestHandler(router.Conn)
 	r := echo.New()
 
 	// Middleware
@@ -38,31 +39,31 @@ func (router *router) InitRouter() *echo.Echo {
 	p.Use(r)
 
 	// Healthcheck
-	r.GET("/ping", handler.Ping)
+	r.GET("/ping", gh.Ping)
 
 	// // Empty tables
-	r.GET("/empty_tables", handler.EmptyTables)
+	r.GET("/empty_tables", th.EmptyTables)
 
 	// // Tables
-	r.GET("/tables", handler.GetTables)
-	r.GET("/table/:id", handler.GetTable)
-	r.PUT("/table", handler.CreateTable)
+	r.GET("/tables", th.GetTables)
+	r.GET("/table/:id", th.GetTable)
+	r.PUT("/table", th.CreateTable)
 
 	// // Guest List
-	r.POST("/guest_list/:name", handler.AddToGuestList)
-	r.GET("/guest_list", handler.GetGuestList)
+	r.POST("/guest_list/:name", gh.AddToGuestList)
+	r.GET("/guest_list", gh.GetGuestList)
 
 	// // Guest Arrives
-	r.PUT("/guests/:name", handler.GuestArrived)
+	r.PUT("/guests/:name", gh.GuestArrived)
 
 	// // Guest Leaves
-	r.DELETE("/guests/:name", handler.GuestDepart)
+	r.DELETE("/guests/:name", gh.GuestDepart)
 
 	// // List Arrived Guest
-	r.GET("/guests", handler.ListArrivedGuest)
+	r.GET("/guests", gh.ListArrivedGuest)
 
 	// // Empty Seats
-	r.GET("/seats_empty", handler.GetEmptySeatsCount)
+	r.GET("/seats_empty", th.GetEmptySeatsCount)
 
 	r.Start(fmt.Sprintf(":%d", router.Port))
 	return r
