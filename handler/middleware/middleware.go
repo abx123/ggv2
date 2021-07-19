@@ -7,10 +7,13 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"runtime"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+
 	"go.uber.org/zap"
 )
 
@@ -19,9 +22,13 @@ type bodyDumpResponseWriter struct {
 	http.ResponseWriter
 }
 
-func Logger() echo.MiddlewareFunc {
+func Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {
+
+			uuid := uuid.New().String()
+			logger := zap.L().With(zap.String("rqId", uuid))
+			zap.ReplaceGlobals(logger)
 
 			resBody := new(bytes.Buffer)
 			mw := io.MultiWriter(c.Response().Writer, resBody)
@@ -31,15 +38,23 @@ func Logger() echo.MiddlewareFunc {
 			req := c.Request()
 			res := c.Response()
 			start := time.Now()
-			logger := zap.L().With(zap.String("rqId", fmt.Sprintf("%v", req.Header.Get(echo.HeaderXRequestID))))
+
+			// Request ID
+			rid := req.Header.Get(echo.HeaderXRequestID)
+			if rid == "" {
+				res.Header().Set(echo.HeaderXRequestID, uuid)
+			}
+
+			// CORS
+			res.Header().Set(echo.HeaderAccessControlAllowOrigin, "*")
+			res.Header().Set(echo.HeaderAccessControlAllowMethods, strings.Join([]string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE, echo.OPTIONS}, ","))
 
 			if err = next(c); err != nil {
 				c.Error(err)
 			}
 			stop := time.Now()
-			// fmt.Printf("id=%s, method=%s, uri=%s, status=%d, latency=%s, resBody=%s\n", res.Header().Get(echo.HeaderXRequestID), req.Method, req.RequestURI, res.Status, stop.Sub(start).String(), resBody.String())
 
-			// request
+			// Log Request
 			zf := []zap.Field{}
 			qp := c.QueryParams()
 			fp, _ := c.FormParams()
@@ -61,13 +76,28 @@ func Logger() echo.MiddlewareFunc {
 			}
 			logger.Info("RqLog:", zf...)
 
-			// response
+			// Log Response
 			zf = []zap.Field{}
 			zf = append(zf, zap.String("status", fmt.Sprintf("%d", res.Status)))
 			zf = append(zf, zap.String("latency", stop.Sub(start).String()))
 			zf = append(zf, zap.String("rsBody", resBody.String()))
 
 			logger.Info("RsLog:", zf...)
+
+			// Recover
+			defer func() {
+				if r := recover(); r != nil {
+					err, ok := r.(error)
+					if !ok {
+						err = fmt.Errorf("%v", r)
+					}
+					stack := make([]byte, 4<<10)
+					length := runtime.Stack(stack, !false)
+					msg := fmt.Sprintf("[PANIC RECOVER] %v %s\n", err, stack[:length])
+					c.Logger().Print(msg)
+					c.Error(err)
+				}
+			}()
 
 			return
 		}

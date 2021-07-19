@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 
@@ -10,7 +9,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"ggv2/constant"
 	"ggv2/handler/presenter"
 	"ggv2/repo"
 	"ggv2/services"
@@ -43,7 +41,6 @@ func NewTableHandler(conn *sqlx.DB) *TableHandler {
 // GetTable handles GET /table/:id"
 func (th *TableHandler) GetTable(c echo.Context) (err error) {
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
-	ctx := context.WithValue(c.Request().Context(), constant.ContextKeyRequestID, c.Response().Header().Get(echo.HeaderXRequestID))
 	id := c.Param("id")
 	tableId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
@@ -52,14 +49,14 @@ func (th *TableHandler) GetTable(c echo.Context) (err error) {
 		return c.JSON(http.StatusBadRequest, presenter.ErrResp(reqID, errInvalidRequest))
 	}
 	// Query database
-	res, err := th.dbSvc.GetTable(ctx, tableId)
+	res, err := th.dbSvc.GetTable(c.Request().Context(), tableId)
 	if err != nil {
 		// Error while querying database
 		return c.JSON(http.StatusInternalServerError, presenter.ErrResp(reqID, err))
 	}
 	// Return ok
 	return c.JSON(http.StatusOK, &presenter.Table{
-		TableID:  res.TableID,
+		// TableID:  res.TableID,
 		Capacity: res.Capacity,
 	})
 }
@@ -67,14 +64,13 @@ func (th *TableHandler) GetTable(c echo.Context) (err error) {
 // GetTables handles GET /tables
 func (th *TableHandler) GetTables(c echo.Context) (err error) {
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
-	ctx := context.WithValue(c.Request().Context(), constant.ContextKeyRequestID, c.Response().Header().Get(echo.HeaderXRequestID))
 	limit, offset, err := getLimitAndOffest(c)
 	if err != nil {
 		zap.L().Error(errInvalidRequest.Error(), zap.Error(err))
 		return c.JSON(http.StatusBadRequest, presenter.ErrResp(reqID, err))
 	}
 	// Query database
-	data, err := th.dbSvc.ListTables(ctx, limit, offset)
+	data, err := th.dbSvc.ListTables(c.Request().Context(), limit, offset)
 
 	if err != nil {
 		// Error while querying database
@@ -96,7 +92,6 @@ func (th *TableHandler) GetTables(c echo.Context) (err error) {
 // CreateTables handles PUT /table
 func (th *TableHandler) CreateTable(c echo.Context) (err error) {
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
-	ctx := context.WithValue(c.Request().Context(), constant.ContextKeyRequestID, c.Response().Header().Get(echo.HeaderXRequestID))
 	r := new(createTableRequest)
 	if err = c.Bind(r); err != nil {
 		// Invalid request parameter
@@ -110,7 +105,7 @@ func (th *TableHandler) CreateTable(c echo.Context) (err error) {
 	}
 	res := &putCreateTableResponse{}
 	// Query database
-	data, err := th.dbSvc.CreateTable(ctx, r.Capacity)
+	data, err := th.dbSvc.CreateTable(c.Request().Context(), r.Capacity)
 	if err != nil {
 		// Error while querying database
 		return c.JSON(http.StatusInternalServerError, presenter.ErrResp(reqID, err))
@@ -127,9 +122,8 @@ func (th *TableHandler) CreateTable(c echo.Context) (err error) {
 // Init handles GET /init
 func (th *TableHandler) EmptyTables(c echo.Context) (err error) {
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
-	ctx := context.WithValue(c.Request().Context(), constant.ContextKeyRequestID, c.Response().Header().Get(echo.HeaderXRequestID))
 	// Query database
-	err = th.dbSvc.EmptyTables(ctx)
+	err = th.dbSvc.EmptyTables(c.Request().Context())
 	if err != nil {
 		// Error while querying database
 		return c.JSON(http.StatusInternalServerError, presenter.ErrResp(reqID, err))
@@ -142,9 +136,8 @@ func (th *TableHandler) EmptyTables(c echo.Context) (err error) {
 func (th *TableHandler) GetEmptySeatsCount(c echo.Context) (err error) {
 	res := &getSeatsEmptyResponse{}
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
-	ctx := context.WithValue(c.Request().Context(), constant.ContextKeyRequestID, c.Response().Header().Get(echo.HeaderXRequestID))
 	// Query database
-	count, err := th.dbSvc.GetEmptySeatsCount(ctx)
+	count, err := th.dbSvc.GetEmptySeatsCount(c.Request().Context())
 	if err != nil {
 		// Error while querying database
 		return c.JSON(http.StatusInternalServerError, presenter.ErrResp(reqID, err))

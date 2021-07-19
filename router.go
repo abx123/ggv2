@@ -29,11 +29,7 @@ func (router *router) InitRouter() *echo.Echo {
 	r := echo.New()
 
 	// Middleware
-	r.Pre(middleware.RequestID())
-	r.Use(middleware.Logger())
-	// r.Use(middleware.Recover())
-	r.Use(middleware.Recover())
-	r.Use(middleware.Cors())
+	r.Use(middleware.Middleware())
 
 	p := prometheus.NewPrometheus("GGv2", nil)
 	p.Use(r)
