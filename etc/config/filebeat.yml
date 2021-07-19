@@ -3,5 +3,5 @@ filebeat.inputs:
     paths:
       - /logs/*.log
 
-output.logstash:
-  hosts: ["logstash:5044"]
+output.elasticsearch:
+  hosts: ["host.docker.internal:9200"]

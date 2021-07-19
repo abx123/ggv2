@@ -48,7 +48,7 @@ func (r *DBRepo) GetTable(ctx context.Context, id int64) (*entities.Table, error
 	// Execute Statement
 	err := r.db.Get(&table, "SELECT * FROM `table` WHERE id=?", id)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errTableNotFound
 		}
@@ -62,13 +62,13 @@ func (r *DBRepo) CreateTable(ctx context.Context, table *entities.Table) (*entit
 	// Execute Statement
 	res, err := r.db.Exec("INSERT INTO `table` (capacity, pcapacity, acapacity) VALUES(?, ?, ?)", table.Capacity, table.Capacity, table.Capacity)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error paring statement result into struct
 		return nil, errDBErr
 	}
 	id, err := res.LastInsertId()
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting ID of newly created record
 		return nil, errDBErr
 	}
@@ -81,7 +81,7 @@ func (r *DBRepo) ListTables(ctx context.Context, limit, offset int64) ([]*entiti
 	tables := []*entities.Table{}
 	err := r.db.Select(&tables, "SELECT * FROM `table` LIMIT ? OFFSET ?", limit, offset)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errTableNotFound
 		}
@@ -93,12 +93,12 @@ func (r *DBRepo) ListTables(ctx context.Context, limit, offset int64) ([]*entiti
 func (r *DBRepo) EmptyTables(ctx context.Context) error {
 	_, err := r.db.Exec("TRUNCATE TABLE `table`;")
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		return errDBErr
 	}
 	_, err = r.db.Exec("TRUNCATE TABLE `guests`;")
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		return errDBErr
 	}
 	return nil
@@ -110,7 +110,7 @@ func (r *DBRepo) GetEmptySeatsCount(ctx context.Context) (int, error) {
 	// Execute query
 	err := r.db.Get(&c, "SELECT SUM(acapacity) FROM `table`")
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error executing query
 		return c, errDBErr
 	}
@@ -123,7 +123,7 @@ func (r *DBRepo) GetGuestByName(ctx context.Context, g *entities.Guest) (*entiti
 	// Execute Statement
 	err := r.db.Get(&guest, "SELECT * FROM `guests` WHERE name = ?", g.Name)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errGuestNotFound
 		}
@@ -138,7 +138,7 @@ func (r *DBRepo) ListGuests(ctx context.Context, limit, offset int64) ([]*entiti
 
 	err := r.db.Select(&guests, "SELECT * FROM `guests` LIMIT ? OFFSET ?", limit, offset)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errGuestNotFound
 		}
@@ -152,7 +152,7 @@ func (r *DBRepo) ListArrivedGuests(ctx context.Context, limit, offset int64) ([]
 
 	err := r.db.Select(&guests, "SELECT * FROM `guests` WHERE total_arrived_guests > 0 LIMIT ? OFFSET ?", limit, offset)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errGuestNotFound
 		}
@@ -164,7 +164,7 @@ func (r *DBRepo) ListArrivedGuests(ctx context.Context, limit, offset int64) ([]
 func (r *DBRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) error {
 	rsvpGuest, err := r.GetGuestByName(ctx, guest)
 	if err != nil && err != errGuestNotFound {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting guest RSVP record, returning error
 		return errDBErr
 	}
@@ -173,7 +173,7 @@ func (r *DBRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 	}
 	table, err := r.GetTable(ctx, guest.TableID)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting guest RSVP record, returning error
 		return errDBErr
 	}
@@ -183,20 +183,20 @@ func (r *DBRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 	}
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error starting transaction
 		return errDBErr
 	}
 	insert, err := tx.ExecContext(ctx, "INSERT INTO `guests` (total_rsvp_guests, tableid, name) VALUES(?, ?, ?)", guest.TotalGuests, guest.TableID, guest.Name)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error creating RSVP record for guest
 		tx.Rollback()
 		return errDBErr
 	}
 	_, err = insert.LastInsertId()
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting ID of newly created record
 		return errDBErr
 	}
@@ -205,14 +205,14 @@ func (r *DBRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 	// Update table capacity information
 	res, err := tx.ExecContext(ctx, "UPDATE `table` SET pcapacity=?, version = version + 1 WHERE id = ? AND version = ?", table.PlannedCapacity, table.TableID, table.Version)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error updating table capacity information
 		tx.Rollback()
 		return errDBErr
 	}
 	c, err := res.RowsAffected()
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting optimistic lock data for table
 		tx.Rollback()
 		return errDBErr
@@ -226,7 +226,7 @@ func (r *DBRepo) AddToGuestList(ctx context.Context, guest *entities.Guest) erro
 	// All ok, commiting transaction
 	err = tx.Commit()
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error commiting transaction
 		return errDBErr
 	}
@@ -240,7 +240,7 @@ func (r *DBRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 		if err == errGuestNotFound {
 			return errGuestNeverRSVP
 		}
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting guest arrival record, returning error
 		return errDBErr
 	}
@@ -249,7 +249,7 @@ func (r *DBRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 	}
 	table, err := r.GetTable(ctx, guestArrival.TableID)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting guest RSVP record, returning error
 		return errDBErr
 	}
@@ -259,20 +259,20 @@ func (r *DBRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 	}
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error starting transaction
 		return errDBErr
 	}
 	// Able to accomodate guests, checking-in guest
 	res, err := tx.ExecContext(ctx, "UPDATE `guests` SET total_arrived_guests=?, version = version + 1, arrivaltime=NOW() WHERE id = ? AND version = ?", guest.TotalArrivedGuests, guestArrival.ID, guestArrival.Version)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		tx.Rollback()
 		return errDBErr
 	}
 	c, err := res.RowsAffected()
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting optimistic lock data for table
 		tx.Rollback()
 		return errDBErr
@@ -287,14 +287,14 @@ func (r *DBRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 	// Update table capacity information
 	res, err = tx.ExecContext(ctx, "UPDATE `table` SET acapacity=?, version = version + 1 WHERE id = ? AND version = ?", table.AvailableCapacity, table.TableID, table.Version)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error updating table capacity information
 		tx.Rollback()
 		return errDBErr
 	}
 	c, err = res.RowsAffected()
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting optimistic lock data for table
 		tx.Rollback()
 		return errDBErr
@@ -307,7 +307,7 @@ func (r *DBRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 	// All ok, commiting transaction
 	err = tx.Commit()
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error commiting transaction
 		return errDBErr
 	}
@@ -317,7 +317,7 @@ func (r *DBRepo) GuestArrived(ctx context.Context, guest *entities.Guest) error 
 func (r *DBRepo) GuestDepart(ctx context.Context, guest *entities.Guest) error {
 	guestArrival, err := r.GetGuestByName(ctx, guest)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting guest arrival record, returning error
 		return errDBErr
 	}
@@ -326,27 +326,27 @@ func (r *DBRepo) GuestDepart(ctx context.Context, guest *entities.Guest) error {
 	}
 	table, err := r.GetTable(ctx, guestArrival.TableID)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting guest RSVP record, returning error
 		return errDBErr
 	}
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error starting transaction
 		return errDBErr
 	}
 	// Able to accomodate guests, checking-in guest
 	res, err := tx.ExecContext(ctx, "UPDATE `guests` SET total_arrived_guests=0, version = version + 1, arrivaltime=\"\" WHERE id = ? AND version = ?", guestArrival.ID, guestArrival.Version)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error creating check-in record for guest
 		tx.Rollback()
 		return errDBErr
 	}
 	c, err := res.RowsAffected()
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting optimistic lock data for table
 		tx.Rollback()
 		return errDBErr
@@ -359,14 +359,14 @@ func (r *DBRepo) GuestDepart(ctx context.Context, guest *entities.Guest) error {
 	table.AvailableCapacity += guestArrival.TotalArrivedGuests
 	res, err = tx.ExecContext(ctx, "UPDATE `table` SET acapacity=?, version = version + 1 WHERE id = ? AND version = ?", table.AvailableCapacity, table.TableID, table.Version)
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error updating table capacity information
 		tx.Rollback()
 		return errDBErr
 	}
 	c, err = res.RowsAffected()
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error getting optimistic lock data for table
 		tx.Rollback()
 		return errDBErr
@@ -379,7 +379,7 @@ func (r *DBRepo) GuestDepart(ctx context.Context, guest *entities.Guest) error {
 	// All ok, commiting transaction
 	err = tx.Commit()
 	if err != nil {
-		zap.L().Error("db returns error", zap.Error(err))
+		zap.L().Error(errDBErr.Error(), zap.Error(err))
 		// Error commiting transaction
 		return errDBErr
 	}

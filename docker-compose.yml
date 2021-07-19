@@ -12,13 +12,6 @@ services:
       retries: 10
     ports:
       - 9200:9200
-  logstash:
-    image: docker.elastic.co/logstash/logstash:7.6.2
-    volumes:
-      - ./etc/config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
 
   golang:
     image: golang:1.16
@@ -34,13 +27,12 @@ services:
     environment:
       - PORT=1323
       - DSN=getground:password@tcp(mysql.c8ajbiky1mzj.ap-southeast-1.rds.amazonaws.com:3306)/getground
-
     command: bash -c "go build . && ./ggv2"
     ports:
       - 1323:1323
 
   filebeat:
-    image: docker.elastic.co/beats/filebeat:6.5.1
+    image: docker.elastic.co/beats/filebeat:7.13.3
     command: filebeat -e -strict.perms=false
     depends_on:
       elasticsearch:
@@ -61,13 +53,13 @@ services:
       retries: 50
     ports:
       - 5601:5601
+    environment:
+      - SERVER_MAXPAYLOADBYTES=20971520
 
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
-    # container_name: clean-architecture-go-v2-grafana
-    # network_mode: "bridge"
     depends_on:
       - prometheus
 
@@ -82,6 +74,3 @@ services:
 
     depends_on:
       - golang
-      # - ./ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    # container_name: clean-architecture-go-v2-prometheus
-    # network_mode: "bridge"

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ func Middleware() echo.MiddlewareFunc {
 		return func(c echo.Context) (err error) {
 
 			uuid := uuid.New().String()
+			zap.ReplaceGlobals(initLogger())
 			logger := zap.L().With(zap.String("rqId", uuid))
 			zap.ReplaceGlobals(logger)
 
@@ -53,36 +55,38 @@ func Middleware() echo.MiddlewareFunc {
 				c.Error(err)
 			}
 			stop := time.Now()
+			if req.RequestURI != "/metrics" {
+				// Log Request
+				zf := []zap.Field{}
+				qp := c.QueryParams()
+				fp, _ := c.FormParams()
+				pn := c.ParamNames()
+				pathParams := []string{}
+				zf = append(zf, zap.String("method", req.Method))
+				zf = append(zf, zap.String("uri", req.RequestURI))
+				if c.Request().URL.RawQuery != "" {
+					zf = append(zf, zap.String("QueryString", c.Request().URL.RawQuery))
+				}
+				if fmt.Sprintf("%v", fp) != fmt.Sprintf("%v", qp) {
+					zf = append(zf, zap.String("FormData", fmt.Sprintf("%s", fp)))
+				}
+				for _, v := range pn {
+					pathParams = append(pathParams, fmt.Sprintf("%s=%s", v, c.Param(v)))
+				}
+				if len(pathParams) > 0 {
+					zf = append(zf, zap.String("PathParam", strings.Join(pathParams, "&")))
+				}
+				logger.Info("RqLog:", zf...)
 
-			// Log Request
-			zf := []zap.Field{}
-			qp := c.QueryParams()
-			fp, _ := c.FormParams()
-			pn := c.ParamNames()
-			pathParams := []string{}
-			zf = append(zf, zap.String("method", req.Method))
-			zf = append(zf, zap.String("uri", req.RequestURI))
-			if c.Request().URL.RawQuery != "" {
-				zf = append(zf, zap.String("QueryString", c.Request().URL.RawQuery))
-			}
-			if fmt.Sprintf("%v", fp) != fmt.Sprintf("%v", qp) {
-				zf = append(zf, zap.String("FormData", fmt.Sprintf("%s", fp)))
-			}
-			for _, v := range pn {
-				pathParams = append(pathParams, fmt.Sprintf("%s=%s", v, c.Param(v)))
-			}
-			if len(pathParams) > 0 {
-				zf = append(zf, zap.String("PathParam", strings.Join(pathParams, "&")))
-			}
-			logger.Info("RqLog:", zf...)
+				// Log Response
+				zf = []zap.Field{}
+				zf = append(zf, zap.String("status", fmt.Sprintf("%d", res.Status)))
+				zf = append(zf, zap.String("latency", stop.Sub(start).String()))
+				zf = append(zf, zap.String("rsBody", resBody.String()))
 
-			// Log Response
-			zf = []zap.Field{}
-			zf = append(zf, zap.String("status", fmt.Sprintf("%d", res.Status)))
-			zf = append(zf, zap.String("latency", stop.Sub(start).String()))
-			zf = append(zf, zap.String("rsBody", resBody.String()))
+				logger.Info("RsLog:", zf...)
 
-			logger.Info("RsLog:", zf...)
+			}
 
 			// Recover
 			defer func() {
@@ -118,4 +122,18 @@ func (w *bodyDumpResponseWriter) Flush() {
 
 func (w *bodyDumpResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return w.ResponseWriter.(http.Hijacker).Hijack()
+}
+
+func initLogger() *zap.Logger {
+	const (
+		logPath = "./logs/ggv2.log"
+	)
+	os.OpenFile(logPath, os.O_RDONLY|os.O_CREATE, 0666)
+	c := zap.NewProductionConfig()
+	c.OutputPaths = []string{"stdout", logPath}
+	l, err := c.Build()
+	if err != nil {
+		panic(err)
+	}
+	return l
 }
