@@ -7,7 +7,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -16,6 +15,8 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"go.uber.org/zap"
+
+	"ggv2/logger"
 )
 
 type bodyDumpResponseWriter struct {
@@ -28,7 +29,7 @@ func Middleware() echo.MiddlewareFunc {
 		return func(c echo.Context) (err error) {
 
 			uuid := uuid.New().String()
-			zap.ReplaceGlobals(initLogger())
+			zap.ReplaceGlobals(logger.NewLogger())
 			logger := zap.L().With(zap.String("rqId", uuid))
 			zap.ReplaceGlobals(logger)
 
@@ -122,18 +123,4 @@ func (w *bodyDumpResponseWriter) Flush() {
 
 func (w *bodyDumpResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return w.ResponseWriter.(http.Hijacker).Hijack()
-}
-
-func initLogger() *zap.Logger {
-	const (
-		logPath = "./logs/ggv2.log"
-	)
-	os.OpenFile(logPath, os.O_RDONLY|os.O_CREATE, 0666)
-	c := zap.NewProductionConfig()
-	c.OutputPaths = []string{"stdout", logPath}
-	l, err := c.Build()
-	if err != nil {
-		panic(err)
-	}
-	return l
 }

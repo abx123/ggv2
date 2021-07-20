@@ -8,11 +8,14 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+
 	"go.uber.org/zap"
+
+	"ggv2/logger"
 )
 
 func main() {
-	logger := initLogger()
+	logger := logger.NewLogger()
 	zap.ReplaceGlobals(logger)
 
 	dsn := getDSN()
@@ -60,18 +63,4 @@ func initDb(dsn string) *sqlx.DB {
 		return nil
 	}
 	return db
-}
-
-func initLogger() *zap.Logger {
-	const (
-		logPath = "./logs/ggv2.log"
-	)
-	os.OpenFile(logPath, os.O_RDONLY|os.O_CREATE, 0666)
-	c := zap.NewProductionConfig()
-	c.OutputPaths = []string{"stdout", logPath}
-	l, err := c.Build()
-	if err != nil {
-		panic(err)
-	}
-	return l
 }
