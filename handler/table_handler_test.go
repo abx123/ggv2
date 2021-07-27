@@ -12,7 +12,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 
-	"ggv2/constant"
 	"ggv2/entities"
 	"ggv2/services/mocks"
 )
@@ -64,10 +63,10 @@ func TestGetTables(t *testing.T) {
 	}
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
+		
+		
 
-		dbSvc.On("ListTables", ctx, int64(10), int64(0)).Return(v.expRes, v.err)
+		dbSvc.On("ListTables", context.Background(), int64(10), int64(0)).Return(v.expRes, v.err)
 		th := TableHandler{dbSvc}
 		req := httptest.NewRequest("GET", v.url, nil)
 		w := httptest.NewRecorder()
@@ -121,9 +120,9 @@ func TestGetTable(t *testing.T) {
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
 		th := TableHandler{dbSvc}
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
-		dbSvc.On("GetTable", ctx, int64(1)).Return(v.expRes, v.err)
+		
+		
+		dbSvc.On("GetTable", context.Background(), int64(1)).Return(v.expRes, v.err)
 		req := httptest.NewRequest("GET", v.url, nil)
 		w := httptest.NewRecorder()
 		r := echo.New()
@@ -183,9 +182,9 @@ func TestCreateTables(t *testing.T) {
 	}
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
-		dbSvc.On("CreateTable", ctx, int64(5)).Return(v.expRes, v.err)
+		
+		
+		dbSvc.On("CreateTable", context.Background(), int64(5)).Return(v.expRes, v.err)
 		th := TableHandler{dbSvc}
 		form := url.Values{}
 		if v.capacity != "" {
@@ -223,9 +222,9 @@ func TestEmptyTables(t *testing.T) {
 	}
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
-		dbSvc.On("EmptyTables", ctx).Return(v.err)
+		
+		
+		dbSvc.On("EmptyTables", context.Background()).Return(v.err)
 		th := TableHandler{dbSvc}
 		req := httptest.NewRequest(http.MethodGet, "http://localhost:1323/empty_tables", nil)
 		w := httptest.NewRecorder()
@@ -261,9 +260,9 @@ func TestGetEmptySeatsCount(t *testing.T) {
 	}
 	for _, v := range testcases {
 		dbSvc := new(mocks.DbService)
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, constant.ContextKeyRequestID, "")
-		dbSvc.On("GetEmptySeatsCount", ctx).Return(v.expRes, v.err)
+		
+		
+		dbSvc.On("GetEmptySeatsCount", context.Background()).Return(v.expRes, v.err)
 		th := TableHandler{dbSvc}
 		req := httptest.NewRequest(http.MethodGet, "http://localhost:1323/seats_empty", nil)
 		w := httptest.NewRecorder()
